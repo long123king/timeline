@@ -18,6 +18,6 @@ They are the direct output of project **PE Replay**.
 3. bash run.sh
 
 # Urls #
-/frames/27  : Navigate to frame 27
-/frames/0x410027 : Navigate to block that starts from 0x410027
+* /frames/27  : Navigate to frame 27
+* /frames/0x410027 : Navigate to block that starts from 0x410027
 
