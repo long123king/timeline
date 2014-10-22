@@ -1,0 +1,4 @@
+.mode csv
+.import frames/data_frames.csv frames_frame
+.import frames/data_blocks.csv frames_block
+.quit

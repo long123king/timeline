@@ -1,0 +1,275 @@
+# example/simple/views.py
+
+from django.http import HttpResponse
+from frames.models import Frame, Block
+import re
+
+def home(request):
+    # Create links and OpenID form to the Login handler.
+    return HttpResponse('''
+        Welcome to Timeline(long123king@163.com)!
+    ''')
+
+def frame_by_index(request, index):
+    this_frame = Frame.objects.get(id = index)
+    if this_frame == None:
+	return HttpResponse("Invalid index : " + index)
+    queryset_block = Block.objects.filter(tid = this_frame.bid)
+    return frame(this_frame, queryset_block)
+
+def frame_by_eip(request, reip):
+    reip = "0x%08x" % int(reip, 0)
+    this_block = Block.objects.get(eip = reip)
+    queryset_block = Block.objects.filter(tid = this_block.tid)
+    if this_block == None:
+	return HttpResponse("Invalid eip : " + reip)
+    queryset_frame = Frame.objects.filter(eip = reip)
+    return frame_eip(queryset_frame, queryset_block)
+    
+def frame(this_frame, queryset_block):
+    content = ""
+    content +=  " <!DOCTYPE html> "
+    content +=  " <html> "
+    content +=  " <head> "
+    content +=  "  "
+    content +=  " <style type=\"text/css\"> "
+    content +=  " body{"
+    content +=  " font-family: monospace;"
+    content +=  " }"
+    content +=  " div#left { "
+    content +=  " 	background-color:#EEEEEE; "
+    content +=  " 	outline:#000000 solid thick; "
+    content +=  " 	height:500px;  "
+    content +=  " 	width:700px;  "
+    content +=  " 	float:left; "
+    content +=  " } "
+    content +=  " div#right { "
+    content +=  " 	background-color:#EEEEEE; "
+    content +=  " 	outline:#000000 solid thick; "
+    content +=  "  	height:500px; "
+    content +=  "  	width:300px; "
+    content +=  "  	float:left; "
+    content +=  " } "
+    content +=  " div#raw { "
+    content +=  " 	background-color:#EEEEEE; "
+    content +=  " 	outline:#000000 solid thick; "
+    content +=  " 	height:500px; "
+    content +=  " 	width:300px; "
+    content +=  " 	float:left; "
+    content +=  " 	padding:20px;  "
+    content +=  " 	text-align:right; "
+    content +=  " } "
+    content +=  " div#disasm { "
+    content +=  " 	background-color:#EEEEEE; "
+    content +=  " 	outline:#000000 solid thick; "
+    content +=  " 	height:500px; "
+    content +=  " 	width:300px; "
+    content +=  " 	padding:20px;  "
+    content +=  " 	float:left; "
+    content +=  " 	text-align:left; "
+    content +=  " } "
+    content +=  " div#reg { "
+    content +=  " 	background-color:#EEEEEE; "
+    content +=  " 	outline:#000000 solid thick; "
+    content +=  " 	height:200px; "
+    content +=  " 	width:300px; "
+    content +=  " 	padding:20px;  "
+    content +=  " 	text-align:left; "
+    content +=  " } "
+    content +=  " div#stack { "
+    content +=  " 	background-color:#EEEEEE; "
+    content +=  " 	outline:#000000 solid thick; "
+    content +=  " 	height:200px; "
+    content +=  " 	width:300px; "
+    content +=  " 	padding:20px;  "
+    content +=  " 	text-align:left; "
+    content +=  " } "
+    content +=  " </style> "
+    content +=  "  "
+    content +=  " </head> "
+    content +=  "  "
+    content +=  " <body> "
+    content +=  "  "
+    content +=  " <div id=\"left\"> "
+    content +=  "  "
+    content +=  " 	<div id=\"raw\"> "
+    for block in queryset_block:
+	content += "[" + block.eip + "]<br/>"
+    	content += block.raw.replace("_|_", "<br/>")
+	content += "<hr/><br/>"
+    content +=  " 	</div> "
+    content +=  "  "
+    content +=  " 	<div id=\"disasm\"> "
+    for block in queryset_block:
+	content += "[" + block.eip + "]<br/>"
+    	this_disasm = block.disasm.replace("_|_", "<br/>")
+	this_disasm = re.sub("(jmp|call) (0x[0-9a-fA-F]*)", "\g<1> <a href=\"/frames/\g<2>\">\g<2></a>", this_disasm)
+        content += this_disasm
+	content += "<hr/><br/>"
+    content +=  " 	</div> "
+    content +=  "  "
+    content +=  " </div> "
+    content +=  "  "
+    content +=  " <div id=\"right\"> "
+    content +=  "  "
+    content +=  " 	<div id=\"reg\"> "
+    content += "eip    : " + this_frame.eip + "<br/>"
+    content += "esp    : " + this_frame.esp + "<br/>"
+    content += "ebp    : " + this_frame.ebp + "<br/>"
+    content += "eax    : " + this_frame.eax + "<br/>"
+    content += "ebx    : " + this_frame.ebx + "<br/>"
+    content += "ecx    : " + this_frame.ecx + "<br/>"
+    content += "edx    : " + this_frame.edx + "<br/>"
+    content += "esi    : " + this_frame.esi + "<br/>"
+    content += "edi    : " + this_frame.edi + "<br/>"
+    content +=  " 	</div> "
+    content +=  "  "
+    content +=  " 	<div id=\"stack\"> "
+    content += "stack_0: " + this_frame.stack_0 + "<br/>"
+    content += "stack_1: " + this_frame.stack_1 + "<br/>"
+    content += "stack_2: " + this_frame.stack_2 + "<br/>"
+    content += "stack_3: " + this_frame.stack_3 + "<br/>"
+    content += "stack_4: " + this_frame.stack_4 + "<br/>"
+    content += "stack_5: " + this_frame.stack_5 + "<br/>"
+    content += "stack_6: " + this_frame.stack_6 + "<br/>"
+    content += "stack_7: " + this_frame.stack_7 + "<br/>"
+    content +=  " 	</div> "
+    content +=  "  "
+    content +=  " </div> "
+    content +=  "  "
+    content +=  " </body> "
+    content +=  " </html> "
+
+    return HttpResponse(content)
+
+def frame_eip(queryset_frame, queryset_block):
+    content = ""
+    content +=  " <!DOCTYPE html> "
+    content +=  " <html> "
+    content +=  " <head> "
+    content +=  "  "
+    content +=  " <style type=\"text/css\"> "
+    content +=  " body{"
+    content +=  " font-family: monospace;"
+    content +=  " }"
+    content +=  " div#left { "
+    content +=  " 	background-color:#EEEEEE; "
+    content +=  " 	outline:#000000 solid thick; "
+    content +=  " 	height:500px;  "
+    content +=  " 	width:700px;  "
+    content +=  " 	float:left; "
+    content +=  " } "
+    content +=  " div#right { "
+    content +=  " 	background-color:#EEEEEE; "
+    content +=  " 	outline:#000000 solid thick; "
+    content +=  "  	height:500px; "
+    content +=  "  	width:300px; "
+    content +=  "  	float:left; "
+    content +=  " } "
+    content +=  " div#raw { "
+    content +=  " 	background-color:#EEEEEE; "
+    content +=  " 	outline:#000000 solid thick; "
+    content +=  " 	height:500px; "
+    content +=  " 	width:300px; "
+    content +=  " 	float:left; "
+    content +=  " 	padding:20px;  "
+    content +=  " 	text-align:right; "
+    content +=  " } "
+    content +=  " div#disasm { "
+    content +=  " 	background-color:#EEEEEE; "
+    content +=  " 	outline:#000000 solid thick; "
+    content +=  " 	height:500px; "
+    content +=  " 	width:300px; "
+    content +=  " 	padding:20px;  "
+    content +=  " 	float:left; "
+    content +=  " 	text-align:left; "
+    content +=  " } "
+    content +=  " div#reg { "
+    content +=  " 	background-color:#EEEEEE; "
+    content +=  " 	outline:#000000 solid thick; "
+    content +=  " 	height:200px; "
+    content +=  " 	width:300px; "
+    content +=  " 	padding:20px;  "
+    content +=  " 	text-align:left; "
+    content +=  " } "
+    content +=  " div#stack { "
+    content +=  " 	background-color:#EEEEEE; "
+    content +=  " 	outline:#000000 solid thick; "
+    content +=  " 	height:200px; "
+    content +=  " 	width:300px; "
+    content +=  " 	padding:20px;  "
+    content +=  " 	text-align:left; "
+    content +=  " } "
+    content +=  " </style> "
+    content +=  "  "
+    content +=  " </head> "
+    content +=  "  "
+    content +=  " <body> "
+    content +=  "  "
+    content +=  " <div id=\"left\"> "
+    content +=  "  "
+    content +=  " 	<div id=\"raw\"> "
+    for block in queryset_block:
+	content += "[" + block.eip + "]<br/>"
+    	content += block.raw.replace("_|_", "<br/>")
+	content += "<hr/><br/>"
+    content +=  " 	</div> "
+    content +=  "  "
+    content +=  " 	<div id=\"disasm\"> "
+    for block in queryset_block:
+	content += "[" + block.eip + "]<br/>"
+    	this_disasm = block.disasm.replace("_|_", "<br/>")
+	this_disasm = re.sub("(jmp|call) (0x[0-9a-fA-F]*)", "\g<1> <a href=\"/frames/\g<2>\">\g<2></a>", this_disasm)
+        content += this_disasm
+	content += "<hr/><br/>"
+    #content += "[" + this_block.eip + "]<br/>"
+    #content += this_block.raw.replace("_|_", "<br/>")
+    #content += "<hr/><br/>"
+    #content +=  " 	</div> "
+    #content +=  "  "
+    #content +=  " 	<div id=\"disasm\"> "
+    #content += "[" + this_block.eip + "]<br/>"
+    #this_disasm = this_block.disasm.replace("_|_", "<br/>")
+    #this_disasm = re.sub("(jmp|call) (0x[0-9a-fA-F]*)", "\g<1> <a href=\"/frames/\g<2>\">\g<2></a>", this_disasm)
+    #content += this_disasm
+    #content += "<hr/><br/>"
+    content +=  " 	</div> "
+    content +=  "  "
+    content +=  " </div> "
+    content +=  "  "
+    content +=  " <div id=\"right\"> "
+    content +=  "  "
+    content +=  " 	<div id=\"reg\"> "
+    for this_frame in queryset_frame:
+	content += "eip    : " + this_frame.eip + "<br/>"
+	content += "esp    : " + this_frame.esp + "<br/>"
+	content += "ebp    : " + this_frame.ebp + "<br/>"
+	content += "eax    : " + this_frame.eax + "<br/>"
+	content += "ebx    : " + this_frame.ebx + "<br/>"
+	content += "ecx    : " + this_frame.ecx + "<br/>"
+	content += "edx    : " + this_frame.edx + "<br/>"
+	content += "esi    : " + this_frame.esi + "<br/>"
+	content += "edi    : " + this_frame.edi + "<br/>"
+	content += "<hr/><br/>"
+    content +=  " 	</div> "
+    content +=  "  "
+    content +=  " 	<div id=\"stack\"> "
+    for this_frame in queryset_frame:
+    	content += "stack_0: " + this_frame.stack_0 + "<br/>"
+    	content += "stack_1: " + this_frame.stack_1 + "<br/>"
+    	content += "stack_2: " + this_frame.stack_2 + "<br/>"
+    	content += "stack_3: " + this_frame.stack_3 + "<br/>"
+    	content += "stack_4: " + this_frame.stack_4 + "<br/>"
+    	content += "stack_5: " + this_frame.stack_5 + "<br/>"
+    	content += "stack_6: " + this_frame.stack_6 + "<br/>"
+    	content += "stack_7: " + this_frame.stack_7 + "<br/>"
+	content += "<hr/><br/>"
+    content +=  " 	</div> "
+    content +=  "  "
+    content +=  " </div> "
+    content +=  "  "
+    content +=  " </body> "
+    content +=  " </html> "
+
+    return HttpResponse(content)
+
